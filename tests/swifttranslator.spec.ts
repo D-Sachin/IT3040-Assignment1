@@ -100,22 +100,13 @@ test.describe('SwiftTranslator Automation Tests', () => {
 
                 if (actualOutput === tc.Expected_Output.trim()) {
                     status = 'PASS';
-                } else if (actualOutput.length > 0) {
-                    // If it doesn't match exactly but returned something, we can consider it a 'PASS' with remarks for manual review, 
-                    // or just FAIL. Given transliteration ambiguity, let's mark PASS if it's close or meaningful?
-                    // Safer to mark FAIL if not exact overlap, but maybe the user wants 'PASS' for 'System worked'.
-                    // Let's stick to: PASS if exact match, else FAIL (Manual Review Needed).
-                    // Actually, for "Robustness" tests (Negative), sometimes we expect it to fail (produce garbage) or autocorrect.
-                    // If it's a Negative case (e.g. invalid input), and we got an output, is that good?
-                    // The assignment asks to "identify scenarios where system fails".
-                    // So we record the actual output regardless.
-                    status = 'PASS'; // Defaulting to PASS for "Executed Successfully" logic, relying on manual review of Actual Output.
-                    if (actualOutput !== tc.Expected_Output.trim()) {
-                        remarks = 'Output differs from expected - verify manually';
-                    }
                 } else {
                     status = 'FAIL';
-                    remarks = 'No output generated';
+                    if (actualOutput.length > 0) {
+                        remarks = 'Output differs from expected';
+                    } else {
+                        remarks = 'No output generated';
+                    }
                 }
 
                 // Append result to CSV
@@ -148,7 +139,7 @@ test.describe('SwiftTranslator Automation Tests', () => {
                 let status = 'FAIL';
                 let remarks = '';
 
-                if (tc.Case_ID.includes('Pos_UI')) {
+                if (tc.Case_ID.includes('Pos_UI') && tc.Case_ID !== 'Pos_UI_0002') {
                     const testInput = tc.Input; // e.g. "man gedhara yanavaa"
                     // Real-time update test
                     await inputLocator.pressSequentially(testInput, { delay: 100 });
@@ -160,7 +151,7 @@ test.describe('SwiftTranslator Automation Tests', () => {
                     } else {
                         remarks = 'Real-time update failed';
                     }
-                } else if (tc.Case_ID.includes('Neg_UI')) {
+                } else if (tc.Case_ID.includes('Neg_UI') || tc.Case_ID === 'Pos_UI_0002') {
                     // Clear functionality
                     await inputLocator.fill(tc.Input);
                     await page.waitForTimeout(1000);

@@ -1,7 +1,7 @@
 # Playwright Automation Assessment - SwiftTranslator
 
 This repository contains the automated test scripts for the SwiftTranslator assignment.
-I've implemented 35 test cases using Playwright to check conversion accuracy and UI functionality.
+I've implemented 42 test cases using Playwright to check conversion accuracy and UI functionality.
 
 ## Setup Instructions
 
