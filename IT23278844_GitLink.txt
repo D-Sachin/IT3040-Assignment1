@@ -1,2 +1,1 @@
-Please replace this text with your public Git repository link.
-Example: https://github.com/yourusername/IT23278844
+https://github.com/D-Sachin/IT3040-Assignment1.git
