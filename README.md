@@ -31,7 +31,7 @@ I've implemented 42 test cases using Playwright to check conversion accuracy and
 
 ## Project Structure
 
-*   `tests/swifttranslator.spec.ts`: Main test file with all 24 positive, 10 negative, and 1 UI scenario.
-*   `test_cases.csv`: Contains the data used for the Excel sheet export.
+*   `tests/IT23278844_swifttranslator.spec.ts`: Main test file with all 24 positive, 10 negative, and 1 UI scenario.
+*   `IT23278844_TestCases.csv`: Contains the data used for the Excel sheet export.
 *   `playwright.config.ts`: Configuration settings for the test runner.
 
