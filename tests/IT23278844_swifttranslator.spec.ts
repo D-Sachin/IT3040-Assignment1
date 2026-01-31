@@ -58,6 +58,8 @@ function readCsv(filePath: string): TestCase[] {
 }
 
 const testCases = readCsv(csvFilePath);
+console.log(`Loaded ${testCases.length} test cases.`);
+testCases.forEach(tc => console.log(`Loaded: ${tc.Case_ID} Type: ${tc.Type}`));
 
 // Prepare results CSV
 const resultsFilePath = path.join(__dirname, '../IT23278844_TestExecutionResults.csv');
@@ -82,7 +84,7 @@ test.describe('SwiftTranslator Automation Tests', () => {
                 await inputLocator.fill(tc.Input);
 
                 // Wait for Output - allowing a bit more time for processing
-                await page.waitForTimeout(3000);
+                await page.waitForTimeout(5000);
 
                 const outputLocator = page.locator('div.bg-slate-50').last();
                 const actualOutput = (await outputLocator.innerText()).trim();
@@ -141,55 +143,80 @@ test.describe('SwiftTranslator Automation Tests', () => {
                 let status = 'FAIL';
                 let remarks = '';
 
-                if (tc.Case_ID.includes('Pos_UI') && tc.Case_ID !== 'Pos_UI_0002') {
-                    const testInput = tc.Input; // e.g. "man gedhara yanavaa"
-                    // Real-time update test
-                    await inputLocator.pressSequentially(testInput, { delay: 100 });
-                    await page.waitForTimeout(2000);
-                    actualOutput = (await outputLocator.innerText()).trim();
+                try {
+                    if (tc.Case_ID.includes('Pos_UI') && tc.Case_ID !== 'Pos_UI_0002') {
+                        const testInput = tc.Input; // e.g. "man gedhara yanavaa"
+                        // Real-time update test
+                        await inputLocator.pressSequentially(testInput, { delay: 200 });
+                        await page.waitForTimeout(3000);
+                        actualOutput = (await outputLocator.innerText()).trim();
 
-                    if (actualOutput.length > 0) {
-                        status = 'PASS';
-                    } else {
-                        remarks = 'Real-time update failed';
-                    }
-                } else if (tc.Case_ID.includes('Neg_UI') || tc.Case_ID === 'Pos_UI_0002') {
-                    // Clear functionality
-                    await inputLocator.fill(tc.Input);
-                    await page.waitForTimeout(1000);
-
-                    // Attempt clear
-                    const clearButton = page.locator('button[title="Clear"]').first();
-
-                    if (await clearButton.isVisible()) {
-                        await clearButton.click();
-                    } else {
-                        // If no UI button, we can't test "UI button functionality" strictly, but we can test if clearing input clears output.
-                        await inputLocator.clear();
-                        remarks = 'No explicit Clear button found, used browser clear event';
-                    }
-
-                    await page.waitForTimeout(1000);
-
-                    // Wait for output to clear (robustness)
-                    try {
-                        await expect(outputLocator).toHaveText('', { timeout: 5000 });
-                    } catch (e) {
-                        // If it doesn't clear in 5s, we proceed to check values and fail
-                    }
-
-                    const textAfter = await inputLocator.inputValue();
-                    actualOutput = (await outputLocator.innerText()).trim();
-
-                    if (textAfter === '') {
-                        status = 'PASS';
-                        if (actualOutput !== '') {
-                            remarks = 'Input cleared. Output retention ignored (Environment issue).';
+                        if (actualOutput.length > 0) {
+                            status = 'PASS';
+                        } else {
+                            remarks = 'Real-time update failed';
                         }
-                    } else {
-                        status = 'FAIL';
-                        remarks = `Fields not cleared. Input: '${textAfter}', Output: '${actualOutput}'`;
+                    } else if (tc.Case_ID.includes('Neg_UI') || tc.Case_ID === 'Pos_UI_0002') {
+                        if (tc.Case_ID === 'Neg_UI_0001') {
+                            // Negative UI Test: Verify Output Area is Read-Only
+                            // Check if element exists first
+                            await outputLocator.waitFor({ state: 'attached', timeout: 5000 });
+
+                            // We check if it is NOT an input/textarea and NOT contenteditable
+                            const tagName = await outputLocator.evaluate(el => el.tagName.toLowerCase());
+                            const isContentEditable = await outputLocator.getAttribute('contenteditable');
+
+                            if (tagName !== 'input' && tagName !== 'textarea' && (!isContentEditable || isContentEditable === 'false')) {
+                                status = 'PASS';
+                                actualOutput = 'Output area is not editable';
+                            } else {
+                                status = 'FAIL';
+                                remarks = 'Output area IS editable (Security/Integrity risk)';
+                                actualOutput = 'Output area is editable';
+                            }
+                        } else {
+                            // Clear functionality (Pos_UI_0002 or other Neg_UI)
+                            await inputLocator.fill(tc.Input);
+                            await page.waitForTimeout(1000);
+
+                            // Attempt clear
+                            const clearButton = page.locator('button[title="Clear"]').first();
+
+                            if (await clearButton.isVisible()) {
+                                await clearButton.click();
+                            } else {
+                                // If no UI button, we can't test "UI button functionality" strictly, but we can test if clearing input clears output.
+                                await inputLocator.clear();
+                                remarks = 'No explicit Clear button found, used browser clear event';
+                            }
+
+                            await page.waitForTimeout(1000);
+
+                            // Wait for output to clear (robustness)
+                            try {
+                                await expect(outputLocator).toHaveText('', { timeout: 5000 });
+                            } catch (e) {
+                                // If it doesn't clear in 5s, we proceed to check values and fail
+                            }
+
+                            const textAfter = await inputLocator.inputValue();
+                            actualOutput = (await outputLocator.innerText()).trim();
+
+                            if (textAfter === '') {
+                                status = 'PASS';
+                                if (actualOutput !== '') {
+                                    remarks = 'Input cleared. Output retention ignored (Environment issue).';
+                                }
+                            } else {
+                                status = 'FAIL';
+                                remarks = `Fields not cleared. Input: '${textAfter}', Output: '${actualOutput}'`;
+                            }
+                        }
                     }
+                } catch (error: any) {
+                    console.error(`Test ${tc.Case_ID} failed with error:`, error);
+                    status = 'FAIL';
+                    remarks = `Test execution error: ${error.message || error}`;
                 }
 
                 const escapeCsv = (str: string) => `"${str.replace(/"/g, '""')}"`;
